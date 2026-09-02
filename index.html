@@ -5,7 +5,16 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#020719">
 <title>Colindres Cell — Joseph Game: Ultimate Edition</title>
-<style>
+ <style>
+  * {
+  -webkit-touch-callout: none; /* Desactiva el menú emergente al mantener presionado */
+  -webkit-user-select: none;   /* Desactiva selección en Safari/Chrome */
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;          /* Desactiva la selección de texto general */
+}
+
 :root{--blue:#08baff;--deep:#020719;--panel:#031332e8;--gold:#ffd21e}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--deep);font-family:Arial,Helvetica,sans-serif;color:#fff}
