@@ -1,1 +1,1072 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
 
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+>
+
+<meta name="theme-color" content="#03070a">
+
+<title>COLINDRES CELL — Combat Arena</title>
+
+<style>
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #020407;
+    font-family: Arial, Helvetica, sans-serif;
+    touch-action: none;
+}
+
+body {
+    position: fixed;
+    inset: 0;
+}
+
+#game {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+#splash {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background:
+        radial-gradient(
+            circle at 50% 35%,
+            rgba(0, 188, 255, .14),
+            transparent 34%
+        ),
+        linear-gradient(
+            145deg,
+            #020406,
+            #071118,
+            #020305
+        );
+
+    transition:
+        opacity .9s ease,
+        visibility .9s ease;
+}
+
+#splash::before {
+
+    content: "";
+
+    position: absolute;
+    inset: 0;
+
+    opacity: .11;
+
+    background-image:
+        linear-gradient(
+            rgba(255,255,255,.15) 1px,
+            transparent 1px
+        ),
+        linear-gradient(
+            90deg,
+            rgba(255,255,255,.15) 1px,
+            transparent 1px
+        );
+
+    background-size: 42px 42px;
+
+    transform:
+        perspective(500px)
+        rotateX(58deg)
+        scale(1.6);
+
+    transform-origin: center bottom;
+}
+
+#splash.hidden {
+
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.splash-content {
+
+    position: relative;
+    z-index: 2;
+
+    width: min(90vw, 480px);
+
+    text-align: center;
+
+    padding: 35px 20px;
+}
+
+.logo-box {
+
+    width: min(82vw, 330px);
+    height: 105px;
+
+    margin: 0 auto 8px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    filter:
+        drop-shadow(
+            0 0 20px
+            rgba(0, 213, 255, .35)
+        );
+}
+
+.logo-box img {
+
+    width: 100%;
+    max-height: 100%;
+
+    object-fit: contain;
+}
+
+.brand-fallback {
+
+    display: none;
+
+    color: white;
+
+    font-family:
+        Impact,
+        Arial Black,
+        sans-serif;
+
+    font-size:
+        clamp(30px, 9vw, 54px);
+
+    letter-spacing: 4px;
+
+    text-shadow:
+        0 0 8px #00d9ff,
+        0 0 25px #00d9ff;
+}
+
+.tagline {
+
+    margin-bottom: 38px;
+
+    color: #a6b6c0;
+
+    font-size: 12px;
+
+    letter-spacing: 3px;
+
+    text-transform: uppercase;
+}
+
+.start-button,
+.restart-button {
+
+    position: relative;
+
+    overflow: hidden;
+
+    width: min(84vw, 360px);
+
+    min-height: 66px;
+
+    border-radius: 14px;
+
+    border:
+        1px solid
+        rgba(0, 225, 255, .8);
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(0, 225, 255, .18),
+            rgba(0, 80, 110, .36)
+        );
+
+    color: white;
+
+    font-size: 17px;
+
+    font-weight: 900;
+
+    letter-spacing: 3px;
+
+    cursor: pointer;
+
+    box-shadow:
+        0 0 18px
+        rgba(0, 220, 255, .35),
+
+        inset 0 0 25px
+        rgba(0, 220, 255, .08);
+
+    transition:
+        transform .15s ease,
+        box-shadow .15s ease;
+}
+
+.start-button::before,
+.restart-button::before {
+
+    content: "";
+
+    position: absolute;
+
+    top: 0;
+    left: -100%;
+
+    width: 60%;
+    height: 100%;
+
+    background:
+        linear-gradient(
+            100deg,
+            transparent,
+            rgba(255,255,255,.38),
+            transparent
+        );
+
+    transform: skewX(-25deg);
+
+    animation:
+        buttonShine 2.8s infinite;
+}
+
+@keyframes buttonShine {
+
+    0% {
+        left: -100%;
+    }
+
+    45%,
+    100% {
+        left: 150%;
+    }
+}
+
+.start-button:active,
+.restart-button:active {
+
+    transform: scale(.96);
+
+    box-shadow:
+        0 0 35px
+        rgba(0, 220, 255, .75);
+}
+
+#hud {
+
+    position: fixed;
+    inset: 0;
+
+    z-index: 50;
+
+    display: none;
+
+    pointer-events: none;
+}
+
+#topHud {
+
+    position: absolute;
+
+    top:
+        max(
+            15px,
+            env(safe-area-inset-top)
+        );
+
+    left: 15px;
+    right: 15px;
+
+    display: flex;
+
+    gap: 10px;
+
+    align-items: center;
+}
+
+.hud-card {
+
+    border:
+        1px solid
+        rgba(130,220,255,.18);
+
+    background:
+        rgba(4,9,13,.74);
+
+    border-radius: 10px;
+
+    backdrop-filter: blur(8px);
+
+    -webkit-backdrop-filter: blur(8px);
+
+    box-shadow:
+        0 5px 20px
+        rgba(0,0,0,.25);
+}
+
+.health-card {
+
+    flex: 1;
+
+    padding: 9px 11px;
+}
+
+.health-title {
+
+    display: flex;
+
+    justify-content: space-between;
+
+    color: #b7c6cd;
+
+    font-size: 10px;
+
+    letter-spacing: 1px;
+
+    margin-bottom: 5px;
+}
+
+.health-bar {
+
+    width: 100%;
+
+    height: 10px;
+
+    overflow: hidden;
+
+    border-radius: 99px;
+
+    background:
+        rgba(255,255,255,.08);
+}
+
+#healthFill {
+
+    width: 100%;
+    height: 100%;
+
+    background:
+        linear-gradient(
+            90deg,
+            #16e987,
+            #baff5e
+        );
+
+    box-shadow:
+        0 0 10px
+        rgba(40,255,150,.45);
+
+    transition:
+        width .2s ease,
+        background .2s ease;
+}
+
+.stat-card {
+
+    min-width: 82px;
+
+    padding: 9px 12px;
+
+    text-align: center;
+}
+
+.stat-label {
+
+    color: #81929d;
+
+    font-size: 9px;
+
+    letter-spacing: 2px;
+}
+
+.stat-value {
+
+    color: white;
+
+    font-family:
+        Impact,
+        Arial Black,
+        sans-serif;
+
+    font-size: 22px;
+}
+
+#waveIndicator {
+
+    position: absolute;
+
+    top: 86px;
+
+    left: 50%;
+
+    transform: translateX(-50%);
+
+    padding: 8px 18px;
+
+    border-radius: 99px;
+
+    border:
+        1px solid
+        rgba(255,255,255,.12);
+
+    background:
+        rgba(0,0,0,.38);
+
+    color: #b9c7ce;
+
+    font-size: 10px;
+
+    letter-spacing: 3px;
+
+    text-transform: uppercase;
+}
+
+#ammo {
+
+    position: absolute;
+
+    right: 18px;
+
+    bottom: 150px;
+
+    padding: 7px 12px;
+
+    border-radius: 8px;
+
+    background:
+        rgba(0,0,0,.45);
+
+    color: #d8e7ed;
+
+    font-family:
+        Impact,
+        Arial Black,
+        sans-serif;
+
+    letter-spacing: 2px;
+
+    font-size: 17px;
+}
+
+#crosshair {
+
+    position: absolute;
+
+    left: 50%;
+    top: 50%;
+
+    width: 34px;
+    height: 34px;
+
+    transform:
+        translate(-50%, -50%);
+
+    opacity: .85;
+}
+
+#crosshair::before,
+#crosshair::after {
+
+    content: "";
+
+    position: absolute;
+
+    background:
+        rgba(255,255,255,.9);
+}
+
+#crosshair::before {
+
+    width: 2px;
+    height: 34px;
+
+    left: 16px;
+    top: 0;
+}
+
+#crosshair::after {
+
+    width: 34px;
+    height: 2px;
+
+    left: 0;
+    top: 16px;
+}
+
+.cross-dot {
+
+    position: absolute;
+
+    width: 5px;
+    height: 5px;
+
+    left: 14.5px;
+    top: 14.5px;
+
+    border-radius: 50%;
+
+    background: white;
+
+    box-shadow:
+        0 0 8px white;
+}
+
+#joystick {
+
+    position: absolute;
+
+    left:
+        max(
+            22px,
+            env(safe-area-inset-left)
+        );
+
+    bottom:
+        max(
+            24px,
+            env(safe-area-inset-bottom)
+        );
+
+    width: 140px;
+    height: 140px;
+
+    border-radius: 50%;
+
+    border:
+        2px solid
+        rgba(180,230,245,.22);
+
+    background:
+        rgba(20,35,43,.28);
+
+    box-shadow:
+        inset 0 0 25px
+        rgba(0,0,0,.35);
+
+    pointer-events: auto;
+}
+
+#joystick::before {
+
+    content: "";
+
+    position: absolute;
+
+    inset: 17px;
+
+    border-radius: 50%;
+
+    border:
+        1px dashed
+        rgba(170,220,240,.18);
+}
+
+#joystickKnob {
+
+    position: absolute;
+
+    width: 62px;
+    height: 62px;
+
+    left: 37px;
+    top: 37px;
+
+    border-radius: 50%;
+
+    border:
+        2px solid
+        rgba(180,245,255,.55);
+
+    background:
+        radial-gradient(
+            circle at 35% 30%,
+            rgba(255,255,255,.22),
+            transparent 30%
+        ),
+        rgba(50,170,205,.42);
+
+    box-shadow:
+        0 0 20px
+        rgba(0,210,255,.28),
+
+        inset 0 0 15px
+        rgba(255,255,255,.1);
+}
+
+#lookArea {
+
+    position: absolute;
+
+    right: 0;
+
+    top: 18%;
+
+    width: 58%;
+    height: 52%;
+
+    pointer-events: auto;
+}
+
+#fireButton {
+
+    position: absolute;
+
+    right:
+        max(
+            24px,
+            env(safe-area-inset-right)
+        );
+
+    bottom:
+        max(
+            34px,
+            env(safe-area-inset-bottom)
+        );
+
+    width: 100px;
+    height: 100px;
+
+    border-radius: 50%;
+
+    border:
+        2px solid
+        rgba(255,255,255,.55);
+
+    background:
+        radial-gradient(
+            circle,
+            rgba(255,65,50,.78),
+            rgba(100,10,10,.45)
+        );
+
+    color: white;
+
+    font-size: 40px;
+
+    pointer-events: auto;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    box-shadow:
+        0 0 25px
+        rgba(255,35,20,.4);
+
+    cursor: pointer;
+}
+
+#fireButton:active {
+
+    transform: scale(.90);
+
+    box-shadow:
+        0 0 45px
+        rgba(255,35,20,.9);
+}
+
+#damageFlash {
+
+    position: fixed;
+
+    inset: 0;
+
+    z-index: 80;
+
+    pointer-events: none;
+
+    background:
+        radial-gradient(
+            circle,
+            transparent 32%,
+            rgba(255,0,0,.76)
+        );
+
+    opacity: 0;
+}
+
+#damageFlash.hit {
+
+    animation:
+        damage .35s ease-out;
+}
+
+@keyframes damage {
+
+    0% {
+        opacity: 0;
+    }
+
+    20% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
+    }
+}
+
+#message {
+
+    position: absolute;
+
+    top: 38%;
+    left: 50%;
+
+    transform:
+        translate(-50%, -50%);
+
+    color: white;
+
+    font-family:
+        Impact,
+        Arial Black,
+        sans-serif;
+
+    font-size:
+        clamp(26px, 8vw, 52px);
+
+    letter-spacing: 5px;
+
+    text-shadow:
+        0 0 20px
+        rgba(0,220,255,.7);
+
+    opacity: 0;
+
+    transition:
+        opacity .3s ease;
+
+    white-space: nowrap;
+}
+
+#gameOver {
+
+    position: fixed;
+
+    inset: 0;
+
+    z-index: 200;
+
+    display: none;
+
+    align-items: center;
+    justify-content: center;
+
+    background:
+        rgba(0,0,0,.78);
+
+    backdrop-filter: blur(9px);
+
+    -webkit-backdrop-filter: blur(9px);
+}
+
+.game-over-panel {
+
+    width: min(88vw,430px);
+
+    padding: 35px 22px;
+
+    text-align: center;
+
+    border-radius: 18px;
+
+    border:
+        1px solid
+        rgba(255,60,50,.35);
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(13,20,25,.97),
+            rgba(3,7,10,.97)
+        );
+
+    box-shadow:
+        0 0 50px
+        rgba(0,0,0,.7);
+}
+
+.game-over-title {
+
+    margin-bottom: 8px;
+
+    color: #ff5048;
+
+    font-family:
+        Impact,
+        Arial Black,
+        sans-serif;
+
+    font-size:
+        clamp(38px,12vw,60px);
+
+    letter-spacing: 5px;
+
+    text-shadow:
+        0 0 20px
+        rgba(255,40,30,.5);
+}
+
+.final-score {
+
+    margin:
+        12px 0 28px;
+
+    color: #c7d3d9;
+
+    letter-spacing: 2px;
+}
+
+#finalKills {
+
+    display: inline-block;
+
+    margin-top: 5px;
+
+    color: white;
+
+    font-size: 38px;
+
+    font-weight: 900;
+}
+
+.restart-button {
+
+    width: 100%;
+}
+
+@media (max-width:500px) {
+
+    #joystick {
+
+        width: 124px;
+        height: 124px;
+    }
+
+    #joystickKnob {
+
+        width: 56px;
+        height: 56px;
+
+        left: 32px;
+        top: 32px;
+    }
+
+    #fireButton {
+
+        width: 88px;
+        height: 88px;
+
+        font-size: 33px;
+    }
+
+    .stat-card {
+
+        min-width: 72px;
+    }
+
+    #ammo {
+
+        bottom: 137px;
+    }
+}
+
+@media (orientation:landscape) {
+
+    #lookArea {
+
+        width: 48%;
+        height: 65%;
+        top: 15%;
+    }
+
+    #waveIndicator {
+
+        top: 75px;
+    }
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="splash">
+
+    <div class="splash-content">
+
+        <div class="logo-box">
+
+            <img
+                src="https://via.placeholder.com/250x80?text=Colindres+Cell"
+                alt="Colindres Cell"
+                onerror="
+                    this.style.display='none';
+                    document.querySelector('.brand-fallback').style.display='block';
+                "
+            >
+
+            <div class="brand-fallback">
+                COLINDRES CELL
+            </div>
+
+        </div>
+
+        <div class="tagline">
+            Soluciones móviles a tu alcance
+        </div>
+
+        <button
+            id="startButton"
+            class="start-button"
+        >
+            INICIAR COMBATE
+        </button>
+
+    </div>
+
+</div>
+
+<canvas id="game"></canvas>
+
+<div id="hud">
+
+    <div id="topHud">
+
+        <div class="hud-card health-card">
+
+            <div class="health-title">
+
+                <span>VIDA</span>
+
+                <span id="healthText">
+                    100%
+                </span>
+
+            </div>
+
+            <div class="health-bar">
+
+                <div id="healthFill"></div>
+
+            </div>
+
+        </div>
+
+        <div class="hud-card stat-card">
+
+            <div class="stat-label">
+                KILLS
+            </div>
+
+            <div
+                id="kills"
+                class="stat-value"
+            >
+                0
+            </div>
+
+        </div>
+
+    </div>
+
+    <div id="waveIndicator">
+        OLEADA 1
+    </div>
+
+    <div id="ammo">
+        AMMO ∞
+    </div>
+
+    <div id="crosshair">
+
+        <div class="cross-dot"></div>
+
+    </div>
+
+    <div id="joystick">
+
+        <div id="joystickKnob"></div>
+
+    </div>
+
+    <div id="lookArea"></div>
+
+    <button
+        id="fireButton"
+        aria-label="Disparar"
+    >
+        ⦿
+    </button>
+
+    <div id="message"></div>
+
+</div>
+
+<div id="damageFlash"></div>
+
+<div id="gameOver">
+
+    <div class="game-over-panel">
+
+        <h1 class="game-over-title">
+            ELIMINADO
+        </h1>
+
+        <div class="final-score">
+
+            ENEMIGOS ABATIDOS
+
+            <br>
+
+            <span id="finalKills">
+                0
+            </span>
+
+        </div>
+
+        <button
+            id="restartButton"
+            class="restart-button"
+        >
+            VOLVER A JUGAR
+        </button>
+
+    </div>
+
+</div>
+
+<script type="importmap">
+{
+    "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"
+    }
+}
+</script>
