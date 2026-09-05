@@ -1,1 +1,327 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Colindres Cell GAME - Color sin Límites</title>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,700;1,900&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-user-select: none; }
+        body { background: #000; overflow: hidden; font-family: 'Montserrat', sans-serif; color: white; width: 100vw; height: 100vh; }
+
+        #game-container { position: relative; width: 100%; height: 100%; background: #050b14; overflow: hidden; }
+        canvas { display: block; width: 100%; height: 100%; }
+
+        /* Capas y Pantallas */
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 10px; }
+        .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; background: rgba(0, 15, 30, 0.95); z-index: 100; transition: opacity 0.3s; }
+        .hidden { display: none !important; }
+
+        /* HUD Top Corregido */
+        .hud-top { display: flex; justify-content: space-between; align-items: flex-start; width: 100%; pointer-events: auto; z-index: 10; }
+        .hud-left, .hud-right { display: flex; flex-direction: column; gap: 4px; width: 140px; }
+        
+        .bar-bg { background: rgba(0,0,0,0.8); border: 2px solid #00f3ff; border-radius: 10px; height: 18px; overflow: hidden; box-shadow: 0 0 8px #00f3ff; }
+        .bar-fill { height: 100%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; text-shadow: 1px 1px 2px black; transition: width 0.1s; }
+        .hp { background: linear-gradient(90deg, #ff0000, #ff4d4d); width: 100%; }
+        .mp { background: linear-gradient(90deg, #0055ff, #0099ff); width: 80%; }
+        .boss-hp { background: linear-gradient(90deg, #ff0000, #ff8c00); width: 100%; }
+        .coins { font-size: 12px; font-weight: bold; color: #ffcc00; margin-top: 2px; }
+
+        .hud-center { text-align: center; text-shadow: 0 0 10px #00f3ff; flex-grow: 1; padding: 0 5px; }
+        .hud-center h2 { font-size: 14px; color: #00f3ff; letter-spacing: 1px; }
+        .hud-center span { font-size: 9px; opacity: 0.8; white-space: nowrap; }
+        
+        .boss-info { font-size: 9px; font-weight: bold; color: #ff4d4d; text-align: right; }
+
+        /* Paneles Laterales e Inferiores */
+        .skills-panel { position: absolute; left: 10px; top: 35%; display: flex; flex-direction: column; gap: 8px; pointer-events: auto; z-index: 10; }
+        .btn-skill { width: 45px; height: 45px; background: rgba(0, 20, 50, 0.85); border: 2px solid #00f3ff; color: white; border-radius: 8px; font-size: 8px; font-weight: bold; box-shadow: inset 0 0 10px #00f3ff; cursor: pointer; text-align: center; }
+
+        .touch-controls { position: absolute; bottom: 25px; width: 100%; display: flex; justify-content: space-between; padding: 0 20px; pointer-events: auto; z-index: 10; }
+        
+        /* Joystick Real Táctil */
+        .joystick-container { width: 110px; height: 110px; background: rgba(255,255,255,0.08); border: 2px solid rgba(0, 243, 255, 0.4); border-radius: 50%; position: relative; touch-action: none; }
+        .joystick-knob { width: 50px; height: 50px; background: rgba(0, 243, 255, 0.4); border: 2px solid #00f3ff; border-radius: 50%; position: absolute; top: 30px; left: 30px; pointer-events: none; transition: transform 0.05s linear; }
+
+        .action-buttons { display: flex; gap: 12px; align-items: flex-end; }
+        .btn-action { width: 65px; height: 65px; border-radius: 50%; background: rgba(0, 15, 30, 0.85); border: 2px solid #00f3ff; color: white; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 10px rgba(0,243,255,0.3); }
+
+        .bottom-bar { position: absolute; bottom: 3px; width: 100%; text-align: center; color: #00f3ff; font-style: italic; font-weight: 900; font-size: 10px; letter-spacing: 2px; pointer-events: none; z-index: 10; }
+
+        /* Menús */
+        .menu-box { background: linear-gradient(180deg, rgba(0,30,80,0.95) 0%, rgba(0,10,30,0.95) 100%); border: 3px solid #00f3ff; padding: 30px 20px; border-radius: 20px; text-align: center; box-shadow: 0 0 30px rgba(0, 243, 255, 0.4); width: 85%; max-width: 400px; }
+        .menu-box h1 { font-size: 1.8rem; color: #fff; text-shadow: 0 0 15px #00f3ff; margin-bottom: 5px; }
+        .menu-box h2 { font-size: 1rem; color: #ffcc00; margin-bottom: 20px; }
+        .btn-menu { display: block; width: 100%; padding: 12px; margin: 10px 0; background: linear-gradient(90deg, #ffcc00, #ffaa00); border: none; border-radius: 10px; font-size: 1rem; font-weight: bold; color: #000; cursor: pointer; text-transform: uppercase; box-shadow: 0 0 10px rgba(255,204,0,0.4); }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <!-- Lienzo del Juego -->
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- Capa de Interfaz (HUD) -->
+        <div id="ui-layer" class="hidden">
+            <div class="hud-top">
+                <div class="hud-left">
+                    <div class="bar-bg"><div class="bar-fill hp" id="hp-bar">100/100</div></div>
+                    <div class="bar-bg"><div class="bar-fill mp" id="mp-bar">80/100</div></div>
+                    <div class="coins">💰 2,450</div>
+                </div>
+                <div class="hud-center">
+                    <h2>Colindres Cell</h2>
+                    <span>Soluciones móviles a tu alcance</span>
+                </div>
+                <div class="hud-right">
+                    <div class="boss-info">BOSS FINAL</div>
+                    <div class="bar-bg"><div class="bar-fill boss-hp" id="boss-hp-bar"></div></div>
+                </div>
+            </div>
+
+            <div class="skills-panel">
+                <button class="btn-skill">Katana</button>
+                <button class="btn-skill">Especial</button>
+                <button class="btn-skill">Defensa</button>
+                <button class="btn-skill">Poción</button>
+            </div>
+            
+            <div class="touch-controls">
+                <div class="joystick-container" id="joystickZone">
+                    <div class="joystick-knob" id="joystickKnob"></div>
+                </div>
+                <div class="action-buttons">
+                    <button class="btn-action" id="btn-jump">⬆️</button>
+                    <button class="btn-action" id="btn-attack">⚔️</button>
+                </div>
+            </div>
+            <div class="bottom-bar">COLOR SIN LÍMITES 👑</div>
+        </div>
+
+        <!-- Pantalla de Título -->
+        <div id="screen-title" class="screen">
+            <div class="menu-box">
+                <h1>Colindres Cell</h1>
+                <h2>GAME - Color sin Límites 👑</h2>
+                <button class="btn-menu" id="btn-play">▶ JUGAR</button>
+                <button class="btn-menu" style="opacity: 0.7;">★ NIVELES</button>
+                <button class="btn-menu" style="opacity: 0.7;">🛒 TIENDA</button>
+                <button class="btn-menu" style="opacity: 0.7;">⚙️ AJUSTES</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        let gameState = 'TITLE';
+        let lastTime = 0;
+
+        // Controles y Movimiento
+        const input = { left: false, right: false };
+
+        class Player {
+            constructor() {
+                this.x = 100;
+                this.y = canvas.height - 220;
+                this.width = 65;
+                this.height = 100;
+                this.vx = 0;
+                this.vy = 0;
+                this.speed = 4;
+                this.gravity = 0.8;
+                this.isJumping = false;
+                this.isAttacking = false;
+            }
+
+            update() {
+                // Movimiento horizontal por joystick
+                if (input.left) {
+                    this.vx = -this.speed;
+                } else if (input.right) {
+                    this.vx = this.speed;
+                } else {
+                    this.vx = 0;
+                }
+
+                this.x += this.vx;
+                
+                // Límites de pantalla
+                if (this.x < 10) this.x = 10;
+                if (this.x > canvas.width - 150) this.x = canvas.width - 150;
+
+                // Gravedad y suelo
+                this.y += this.vy;
+                const floorLevel = canvas.height - 180;
+                
+                if (this.y < floorLevel) {
+                    this.vy += this.gravity;
+                } else {
+                    this.y = floorLevel;
+                    this.isJumping = false;
+                    this.vy = 0;
+                }
+            }
+
+            draw(ctx) {
+                // Dibujar personaje (Chaqueta azul)
+                ctx.fillStyle = '#0055ff';
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+                
+                // Pelo / Gafas placeholder
+                ctx.fillStyle = '#000';
+                ctx.fillRect(this.x + 10, this.y + 10, 45, 25);
+
+                if (this.isAttacking) {
+                    // Animación de "corte azul"
+                    ctx.fillStyle = 'rgba(0, 243, 255, 0.85)';
+                    ctx.fillRect(this.x + this.width, this.y + 30, 120, 15);
+                }
+            }
+
+            attack() {
+                if (!this.isAttacking) {
+                    this.isAttacking = true;
+                    setTimeout(() => this.isAttacking = false, 200);
+                }
+            }
+
+            jump() {
+                if (!this.isJumping) {
+                    this.vy = -14;
+                    this.isJumping = true;
+                }
+            }
+        }
+
+        class Boss {
+            constructor() {
+                this.width = 120;
+                this.height = 160;
+            }
+            draw(ctx) {
+                let bx = canvas.width - this.width - 50;
+                let by = canvas.height - this.height - 180;
+                
+                // Placeholder Súper Cargador
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(bx, by, this.width, this.height);
+                ctx.fillStyle = '#ff0000';
+                ctx.fillRect(bx + 20, by + 40, 25, 18);
+                ctx.fillRect(bx + 75, by + 40, 25, 18);
+            }
+        }
+
+        const player = new Player();
+        const boss = new Boss();
+
+        // --- LÓGICA DEL JOYSTICK TÁCTIL ---
+        const zone = document.getElementById('joystickZone');
+        const knob = document.getElementById('joystickKnob');
+        let joystickTouchId = null;
+        let centerX = 0, centerY = 0;
+
+        zone.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const touch = e.changedTouches[0];
+            joystickTouchId = touch.identifier;
+            const rect = zone.getBoundingClientRect();
+            centerX = rect.left + rect.width / 2;
+            centerY = rect.top + rect.height / 2;
+        }, {passive: false});
+
+        zone.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const touch = e.changedTouches[i];
+                if (touch.identifier === joystickTouchId) {
+                    let dx = touch.clientX - centerX;
+                    let dy = touch.clientY - centerY;
+                    let distance = Math.sqrt(dx * dx + dy * dy);
+                    let maxRadius = 35;
+
+                    if (distance > maxRadius) {
+                        dx = (dx / distance) * maxRadius;
+                        dy = (dy / distance) * maxRadius;
+                    }
+
+                    knob.style.transform = `translate(${dx}px, ${dy}px)`;
+
+                    // Activar direcciones
+                    if (dx < -10) {
+                        input.left = true;
+                        input.right = false;
+                    } else if (dx > 10) {
+                        input.right = true;
+                        input.left = false;
+                    } else {
+                        input.left = false;
+                        input.right = false;
+                    }
+                }
+            }
+        }, {passive: false});
+
+        function resetJoystick() {
+            joystickTouchId = null;
+            knob.style.transform = `translate(0px, 0px)`;
+            input.left = false;
+            input.right = false;
+        }
+
+        zone.addEventListener('touchend', resetJoystick);
+        zone.addEventListener('touchcancel', resetJoystick);
+
+        // --- BUCLE PRINCIPAL ---
+        function gameLoop(timestamp) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (gameState === 'PLAYING') {
+                // Fondo oscuro nocturno urbano
+                ctx.fillStyle = '#050b14';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Suelo de la calle con neón
+                ctx.fillStyle = '#0d1b2a';
+                ctx.fillRect(0, canvas.height - 180, canvas.width, 180);
+                ctx.fillStyle = '#00f3ff';
+                ctx.fillRect(0, canvas.height - 180, canvas.width, 4);
+
+                player.update();
+                player.draw(ctx);
+                boss.draw(ctx);
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Botones de Acción
+        document.getElementById('btn-play').addEventListener('click', () => {
+            document.getElementById('screen-title').classList.add('hidden');
+            document.getElementById('ui-layer').classList.remove('hidden');
+            gameState = 'PLAYING';
+        });
+
+        document.getElementById('btn-attack').addEventListener('touchstart', (e) => { e.preventDefault(); player.attack(); });
+        document.getElementById('btn-attack').addEventListener('mousedown', () => player.attack());
+
+        document.getElementById('btn-jump').addEventListener('touchstart', (e) => { e.preventDefault(); player.jump(); });
+        document.getElementById('btn-jump').addEventListener('mousedown', () => player.jump());
+
+        document.body.addEventListener('touchmove', function(e) { e.preventDefault(); }, { passive: false });
+
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>
 
