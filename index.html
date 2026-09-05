@@ -1,1 +1,2495 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#05080c">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Colindres Cell — Combat Arena</title>
 
+<style>
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    background: #030507;
+    font-family: Arial, Helvetica, sans-serif;
+    color: white;
+    touch-action: none;
+}
+
+body {
+    position: fixed;
+    inset: 0;
+}
+
+#game {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+#splash {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background:
+        radial-gradient(circle at 50% 35%, rgba(20, 70, 95, .25), transparent 35%),
+        linear-gradient(145deg, #020406, #071016 50%, #020305);
+    transition: opacity .9s ease, visibility .9s ease;
+}
+
+#splash::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    opacity: .12;
+    background-image:
+        linear-gradient(rgba(255,255,255,.15) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.15) 1px, transparent 1px);
+    background-size: 42px 42px;
+    transform: perspective(500px) rotateX(55deg) scale(1.5);
+    transform-origin: center bottom;
+}
+
+.splash-content {
+    position: relative;
+    z-index: 2;
+    width: min(88vw, 480px);
+    text-align: center;
+    padding: 35px 20px;
+}
+
+.logo-box {
+    width: min(80vw, 320px);
+    height: 105px;
+    margin: 0 auto 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    filter: drop-shadow(0 0 18px rgba(0, 210, 255, .35));
+}
+
+.logo-box img {
+    width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.brand-fallback {
+    display: none;
+    font-size: clamp(30px, 9vw, 52px);
+    font-weight: 900;
+    letter-spacing: 4px;
+    color: #fff;
+    text-shadow:
+        0 0 8px #00d9ff,
+        0 0 25px #00d9ff;
+}
+
+.tagline {
+    margin: 0 0 38px;
+    color: #a8b7c2;
+    letter-spacing: 3px;
+    font-size: 12px;
+    text-transform: uppercase;
+}
+
+.start-button,
+.restart-button {
+    position: relative;
+    overflow: hidden;
+    width: min(82vw, 350px);
+    min-height: 65px;
+    border: 1px solid rgba(0, 229, 255, .75);
+    border-radius: 14px;
+    background:
+        linear-gradient(135deg, rgba(0, 229, 255, .18), rgba(0, 90, 120, .35));
+    color: #fff;
+    font-size: 17px;
+    font-weight: 900;
+    letter-spacing: 3px;
+    cursor: pointer;
+    box-shadow:
+        0 0 15px rgba(0, 220, 255, .3),
+        inset 0 0 20px rgba(0, 220, 255, .08);
+    transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.start-button::before,
+.restart-button::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(
+        100deg,
+        transparent,
+        rgba(255,255,255,.35),
+        transparent
+    );
+    transform: skewX(-25deg);
+    animation: buttonShine 2.8s infinite;
+}
+
+@keyframes buttonShine {
+    0% { left: -100%; }
+    45%, 100% { left: 150%; }
+}
+
+.start-button:active,
+.restart-button:active {
+    transform: scale(.96);
+    box-shadow:
+        0 0 30px rgba(0, 220, 255, .7),
+        inset 0 0 25px rgba(0, 220, 255, .2);
+}
+
+#splash.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+#hud {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    pointer-events: none;
+    display: none;
+}
+
+#topHud {
+    position: absolute;
+    top: max(15px, env(safe-area-inset-top));
+    left: 15px;
+    right: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.hud-card {
+    background: rgba(4, 9, 13, .72);
+    border: 1px solid rgba(120, 220, 255, .18);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: 10px;
+    box-shadow: 0 5px 20px rgba(0,0,0,.2);
+}
+
+.health-card {
+    flex: 1;
+    padding: 9px 11px;
+}
+
+.health-title {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: #b8c8d0;
+    margin-bottom: 5px;
+}
+
+.health-bar {
+    height: 10px;
+    width: 100%;
+    border-radius: 99px;
+    background: rgba(255,255,255,.08);
+    overflow: hidden;
+}
+
+#healthFill {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, #19e88a, #baff5e);
+    box-shadow: 0 0 10px rgba(40,255,150,.45);
+    transition: width .2s ease, background .2s ease;
+}
+
+.stat-card {
+    min-width: 82px;
+    padding: 9px 12px;
+    text-align: center;
+}
+
+.stat-label {
+    color: #81929d;
+    font-size: 9px;
+    letter-spacing: 2px;
+}
+
+.stat-value {
+    font-family: Impact, Arial Black, sans-serif;
+    font-size: 22px;
+    color: white;
+}
+
+#waveIndicator {
+    position: absolute;
+    top: 85px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 8px 18px;
+    border: 1px solid rgba(255,255,255,.12);
+    background: rgba(0,0,0,.35);
+    border-radius: 99px;
+    color: #b9c7ce;
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+}
+
+#crosshair {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 32px;
+    height: 32px;
+    transform: translate(-50%, -50%);
+    opacity: .85;
+}
+
+#crosshair::before,
+#crosshair::after {
+    content: "";
+    position: absolute;
+    background: rgba(255,255,255,.85);
+}
+
+#crosshair::before {
+    width: 2px;
+    height: 32px;
+    left: 15px;
+    top: 0;
+}
+
+#crosshair::after {
+    width: 32px;
+    height: 2px;
+    left: 0;
+    top: 15px;
+}
+
+.cross-dot {
+    position: absolute;
+    width: 5px;
+    height: 5px;
+    background: #fff;
+    border-radius: 50%;
+    left: 13.5px;
+    top: 13.5px;
+    box-shadow: 0 0 7px white;
+}
+
+#joystick {
+    position: absolute;
+    bottom: max(24px, env(safe-area-inset-bottom));
+    left: max(22px, env(safe-area-inset-left));
+    width: 142px;
+    height: 142px;
+    border-radius: 50%;
+    background: rgba(20, 35, 43, .30);
+    border: 2px solid rgba(180,230,245,.22);
+    box-shadow:
+        inset 0 0 25px rgba(0,0,0,.35),
+        0 0 20px rgba(0,0,0,.2);
+    pointer-events: auto;
+}
+
+#joystick::before {
+    content: "";
+    position: absolute;
+    inset: 17px;
+    border-radius: 50%;
+    border: 1px dashed rgba(170,220,240,.16);
+}
+
+#joystickKnob {
+    position: absolute;
+    width: 64px;
+    height: 64px;
+    left: 39px;
+    top: 39px;
+    border-radius: 50%;
+    background:
+        radial-gradient(circle at 35% 30%, rgba(255,255,255,.22), transparent 30%),
+        rgba(50,170,205,.42);
+    border: 2px solid rgba(180,245,255,.55);
+    box-shadow:
+        0 0 20px rgba(0,210,255,.28),
+        inset 0 0 15px rgba(255,255,255,.1);
+    transition: transform .06s linear;
+}
+
+#fireButton {
+    position: absolute;
+    right: max(24px, env(safe-area-inset-right));
+    bottom: max(35px, env(safe-area-inset-bottom));
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    pointer-events: auto;
+    border: 2px solid rgba(255,255,255,.55);
+    background:
+        radial-gradient(circle, rgba(255,65,50,.75), rgba(100,10,10,.45));
+    color: #fff;
+    font-size: 38px;
+    box-shadow:
+        0 0 20px rgba(255,35,20,.35),
+        inset 0 0 20px rgba(255,100,70,.15);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+}
+
+#fireButton:active {
+    transform: scale(.9);
+    box-shadow:
+        0 0 40px rgba(255,35,20,.8),
+        inset 0 0 25px rgba(255,100,70,.3);
+}
+
+#lookArea {
+    position: absolute;
+    right: 0;
+    top: 20%;
+    width: 58%;
+    height: 48%;
+    pointer-events: auto;
+}
+
+#damageFlash {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    pointer-events: none;
+    background: radial-gradient(
+        circle,
+        transparent 35%,
+        rgba(255,0,0,.72)
+    );
+    opacity: 0;
+}
+
+#damageFlash.hit {
+    animation: damage .35s ease-out;
+}
+
+@keyframes damage {
+    0% { opacity: 0; }
+    20% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+#message {
+    position: absolute;
+    left: 50%;
+    top: 38%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-family: Impact, Arial Black, sans-serif;
+    font-size: clamp(26px, 8vw, 52px);
+    letter-spacing: 5px;
+    text-shadow: 0 0 20px rgba(0,220,255,.7);
+    opacity: 0;
+    transition: opacity .3s;
+}
+
+#gameOver {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    background: rgba(0,0,0,.76);
+    backdrop-filter: blur(9px);
+    -webkit-backdrop-filter: blur(9px);
+}
+
+.game-over-panel {
+    width: min(88vw, 430px);
+    padding: 35px 22px;
+    text-align: center;
+    background:
+        linear-gradient(145deg, rgba(13,20,25,.96), rgba(3,7,10,.96));
+    border: 1px solid rgba(255,60,50,.35);
+    border-radius: 18px;
+    box-shadow: 0 0 50px rgba(0,0,0,.7);
+}
+
+.game-over-title {
+    margin: 0 0 8px;
+    color: #ff5048;
+    font-family: Impact, Arial Black, sans-serif;
+    font-size: clamp(38px, 12vw, 60px);
+    letter-spacing: 5px;
+    text-shadow: 0 0 20px rgba(255,40,30,.5);
+}
+
+.final-score {
+    margin: 12px 0 28px;
+    color: #c7d3d9;
+    letter-spacing: 2px;
+}
+
+#finalKills {
+    color: white;
+    font-size: 34px;
+    font-weight: 900;
+}
+
+.restart-button {
+    width: 100%;
+}
+
+@media (max-width: 500px) {
+    #joystick {
+        width: 125px;
+        height: 125px;
+    }
+
+    #joystickKnob {
+        width: 57px;
+        height: 57px;
+        left: 32px;
+        top: 32px;
+    }
+
+    #fireButton {
+        width: 88px;
+        height: 88px;
+        font-size: 32px;
+    }
+
+    .stat-card {
+        min-width: 72px;
+    }
+}
+
+@media (orientation: landscape) {
+    #lookArea {
+        width: 48%;
+        height: 65%;
+        top: 15%;
+    }
+
+    #waveIndicator {
+        top: 75px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div id="splash">
+    <div class="splash-content">
+        <div class="logo-box">
+            <img
+                src="https://via.placeholder.com/250x80?text=Colindres+Cell"
+                alt="Colindres Cell"
+                onerror="this.style.display='none';document.querySelector('.brand-fallback').style.display='block';"
+            >
+            <div class="brand-fallback">COLINDRES CELL</div>
+        </div>
+
+        <div class="tagline">
+            Soluciones móviles a tu alcance
+        </div>
+
+        <button id="startButton" class="start-button">
+            INICIAR COMBATE
+        </button>
+    </div>
+</div>
+
+<canvas id="game"></canvas>
+
+<div id="hud">
+
+    <div id="topHud">
+
+        <div class="hud-card health-card">
+            <div class="health-title">
+                <span>VIDA</span>
+                <span id="healthText">100%</span>
+            </div>
+
+            <div class="health-bar">
+                <div id="healthFill"></div>
+            </div>
+        </div>
+
+        <div class="hud-card stat-card">
+            <div class="stat-label">KILLS</div>
+            <div id="kills" class="stat-value">0</div>
+        </div>
+
+    </div>
+
+    <div id="waveIndicator">
+        OLEADA 1
+    </div>
+
+    <div id="crosshair">
+        <div class="cross-dot"></div>
+    </div>
+
+    <div id="joystick">
+        <div id="joystickKnob"></div>
+    </div>
+
+    <div id="lookArea"></div>
+
+    <button id="fireButton" aria-label="Disparar">
+        ⦿
+    </button>
+
+    <div id="message"></div>
+
+</div>
+
+<div id="damageFlash"></div>
+
+<div id="gameOver">
+    <div class="game-over-panel">
+
+        <h1 class="game-over-title">
+            ELIMINADO
+        </h1>
+
+        <div class="final-score">
+            ENEMIGOS ABATIDOS<br>
+            <span id="finalKills">0</span>
+        </div>
+
+        <button id="restartButton" class="restart-button">
+            VOLVER A JUGAR
+        </button>
+
+    </div>
+</div>
+
+<!-- ============================================================
+     BLOQUE 2 — JAVASCRIPT + THREE.JS
+     ============================================================ -->
+
+<script type="importmap">
+{
+    "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+    }
+}
+</script><script type="module">
+
+import * as THREE from "three";
+
+const canvas = document.getElementById("game");
+
+const splash = document.getElementById("splash");
+const startButton = document.getElementById("startButton");
+const restartButton = document.getElementById("restartButton");
+const hud = document.getElementById("hud");
+const gameOverScreen = document.getElementById("gameOver");
+
+const healthFill = document.getElementById("healthFill");
+const healthText = document.getElementById("healthText");
+const killsText = document.getElementById("kills");
+const finalKills = document.getElementById("finalKills");
+const waveIndicator = document.getElementById("waveIndicator");
+
+const joystick = document.getElementById("joystick");
+const joystickKnob = document.getElementById("joystickKnob");
+const fireButton = document.getElementById("fireButton");
+const lookArea = document.getElementById("lookArea");
+const damageFlash = document.getElementById("damageFlash");
+const message = document.getElementById("message");
+
+let renderer;
+let scene;
+let camera;
+let clock;
+
+let player;
+let weapon;
+let muzzleLight;
+
+let enemies = [];
+let bullets = [];
+let particles = [];
+let obstacles = [];
+
+let gameRunning = false;
+let gameStarted = false;
+
+let playerHealth = 100;
+let killCount = 0;
+let wave = 1;
+
+let spawnTimer = 0;
+let waveTimer = 0;
+
+let shootCooldown = 0;
+let damageCooldown = 0;
+
+let moveX = 0;
+let moveY = 0;
+
+let cameraYaw = 0;
+let cameraPitch = 0.35;
+
+let lookPointerId = null;
+let lookStartX = 0;
+let lookStartY = 0;
+
+let joystickPointerId = null;
+
+const worldSize = 90;
+
+const tempVector = new THREE.Vector3();
+const tempVector2 = new THREE.Vector3();
+
+const raycaster = new THREE.Raycaster();
+
+const enemyMaterialCache = {};
+
+function initRenderer() {
+
+    renderer = new THREE.WebGLRenderer({
+        canvas,
+        antialias: false,
+        alpha: false,
+        powerPreference: "high-performance"
+    });
+
+    renderer.setPixelRatio(
+        Math.min(window.devicePixelRatio || 1, 1.5)
+    );
+
+    renderer.setSize(
+        window.innerWidth,
+        window.innerHeight,
+        false
+    );
+
+    renderer.shadowMap.enabled = false;
+
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.15;
+}
+
+function initScene() {
+
+    scene = new THREE.Scene();
+
+    scene.background = new THREE.Color(0x05080b);
+
+    scene.fog = new THREE.FogExp2(
+        0x071015,
+        0.018
+    );
+
+    camera = new THREE.PerspectiveCamera(
+        65,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        250
+    );
+
+    clock = new THREE.Clock();
+
+    const hemiLight = new THREE.HemisphereLight(
+        0x9edcff,
+        0x101419,
+        1.25
+    );
+
+    scene.add(hemiLight);
+
+    const moonLight = new THREE.DirectionalLight(
+        0xb8e7ff,
+        1.8
+    );
+
+    moonLight.position.set(
+        -25,
+        45,
+        -25
+    );
+
+    scene.add(moonLight);
+
+    const cyanLight = new THREE.PointLight(
+        0x00d9ff,
+        20,
+        55
+    );
+
+    cyanLight.position.set(
+        0,
+        5,
+        0
+    );
+
+    scene.add(cyanLight);
+
+    createArena();
+    createObstacles();
+    createPlayer();
+
+    cameraYaw = Math.PI;
+}
+
+function createArena() {
+
+    const floorGeometry = new THREE.PlaneGeometry(
+        worldSize * 2,
+        worldSize * 2
+    );
+
+    const floorMaterial = new THREE.MeshStandardMaterial({
+        color: 0x10171b,
+        roughness: 0.85,
+        metalness: 0.2
+    });
+
+    const floor = new THREE.Mesh(
+        floorGeometry,
+        floorMaterial
+    );
+
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = -0.05;
+
+    scene.add(floor);
+
+    const grid = new THREE.GridHelper(
+        worldSize * 2,
+        45,
+        0x1a5966,
+        0x10252b
+    );
+
+    grid.position.y = 0.015;
+
+    grid.material.transparent = true;
+    grid.material.opacity = 0.35;
+
+    scene.add(grid);
+
+    const wallMaterial = new THREE.MeshStandardMaterial({
+        color: 0x111b20,
+        roughness: 0.9
+    });
+
+    const wallHeight = 5;
+
+    const wallGeometryX = new THREE.BoxGeometry(
+        worldSize * 2,
+        wallHeight,
+        1
+    );
+
+    const wallGeometryZ = new THREE.BoxGeometry(
+        1,
+        wallHeight,
+        worldSize * 2
+    );
+
+    const wall1 = new THREE.Mesh(
+        wallGeometryX,
+        wallMaterial
+    );
+
+    wall1.position.set(
+        0,
+        wallHeight / 2,
+        -worldSize
+    );
+
+    scene.add(wall1);
+
+    const wall2 = wall1.clone();
+
+    wall2.position.z = worldSize;
+
+    scene.add(wall2);
+
+    const wall3 = new THREE.Mesh(
+        wallGeometryZ,
+        wallMaterial
+    );
+
+    wall3.position.set(
+        -worldSize,
+        wallHeight / 2,
+        0
+    );
+
+    scene.add(wall3);
+
+    const wall4 = wall3.clone();
+
+    wall4.position.x = worldSize;
+
+    scene.add(wall4);
+
+    for (let i = 0; i < 30; i++) {
+
+        const light = new THREE.PointLight(
+            i % 2 === 0 ? 0x00d9ff : 0xff294d,
+            8,
+            10
+        );
+
+        const angle = (i / 30) * Math.PI * 2;
+
+        light.position.set(
+            Math.cos(angle) * 82,
+            2,
+            Math.sin(angle) * 82
+        );
+
+        scene.add(light);
+    }
+}
+
+function createObstacles() {
+
+    const obstacleMaterial = new THREE.MeshStandardMaterial({
+        color: 0x263137,
+        roughness: 0.78,
+        metalness: 0.25
+    });
+
+    const accentMaterial = new THREE.MeshStandardMaterial({
+        color: 0x087d91,
+        emissive: 0x003a45,
+        emissiveIntensity: 1
+    });
+
+    const positions = [
+        [-28, 0, -18],
+        [-15, 0, -32],
+        [12, 0, -28],
+        [30, 0, -13],
+        [-34, 0, 7],
+        [-18, 0, 20],
+        [0, 0, 14],
+        [19, 0, 25],
+        [35, 0, 8],
+        [28, 0, 37],
+        [-36, 0, 36],
+        [38, 0, -36],
+        [-42, 0, -38]
+    ];
+
+    for (let i = 0; i < positions.length; i++) {
+
+        const [x, y, z] = positions[i];
+
+        const width = 4 + Math.random() * 5;
+        const depth = 4 + Math.random() * 5;
+        const height = 2.5 + Math.random() * 3;
+
+        const geometry = new THREE.BoxGeometry(
+            width,
+            height,
+            depth
+        );
+
+        const mesh = new THREE.Mesh(
+            geometry,
+            obstacleMaterial
+        );
+
+        mesh.position.set(
+            x,
+            height / 2,
+            z
+        );
+
+        mesh.rotation.y =
+            Math.random() * Math.PI;
+
+        scene.add(mesh);
+
+        obstacles.push({
+            mesh,
+            radius: Math.max(width, depth) * 0.6
+        });
+
+        if (i % 2 === 0) {
+
+            const stripGeometry =
+                new THREE.BoxGeometry(
+                    width * 0.82,
+                    0.08,
+                    0.12
+                );
+
+            const strip = new THREE.Mesh(
+                stripGeometry,
+                accentMaterial
+            );
+
+            strip.position.set(
+                x,
+                height * 0.72,
+                z - depth / 2 - 0.01
+            );
+
+            strip.rotation.y = mesh.rotation.y;
+
+            scene.add(strip);
+        }
+    }
+}
+
+function createPlayer() {
+
+    player = new THREE.Group();
+
+    player.position.set(
+        0,
+        0,
+        10
+    );
+
+    scene.add(player);
+
+    const bodyMaterial = new THREE.MeshStandardMaterial({
+        color: 0x27333a,
+        roughness: 0.65,
+        metalness: 0.35
+    });
+
+    const darkMaterial = new THREE.MeshStandardMaterial({
+        color: 0x090d10,
+        roughness: 0.55,
+        metalness: 0.55
+    });
+
+    const glowingMaterial = new THREE.MeshStandardMaterial({
+        color: 0x19d9ff,
+        emissive: 0x00758c,
+        emissiveIntensity: 1.7
+    });
+
+    const body = new THREE.Mesh(
+        new THREE.CapsuleGeometry(
+            0.65,
+            1.2,
+            4,
+            8
+        ),
+        bodyMaterial
+    );
+
+    body.position.y = 1.15;
+
+    player.add(body);
+
+    const head = new THREE.Mesh(
+        new THREE.SphereGeometry(
+            0.46,
+            12,
+            8
+        ),
+        darkMaterial
+    );
+
+    head.position.y = 2.35;
+
+    player.add(head);
+
+    const visor = new THREE.Mesh(
+        new THREE.BoxGeometry(
+            0.55,
+            0.14,
+            0.05
+        ),
+        glowingMaterial
+    );
+
+    visor.position.set(
+        0,
+        2.38,
+        -0.42
+    );
+
+    player.add(visor);
+
+    const backpack = new THREE.Mesh(
+        new THREE.BoxGeometry(
+            0.9,
+            1.1,
+            0.35
+        ),
+        darkMaterial
+    );
+
+    backpack.position.set(
+        0,
+        1.25,
+        0.52
+    );
+
+    player.add(backpack);
+
+    createWeapon();
+
+    player.userData.radius = 0.9;
+}
+
+function createWeapon() {
+
+    weapon = new THREE.Group();
+
+    weapon.position.set(
+        0.65,
+        1.45,
+        -0.55
+    );
+
+    weapon.rotation.set(
+        0,
+        0,
+        -0.04
+    );
+
+    player.add(weapon);
+
+    const weaponBody = new THREE.Mesh(
+        new THREE.BoxGeometry(
+            0.18,
+            0.24,
+            1.35
+        ),
+        new THREE.MeshStandardMaterial({
+            color: 0x12191d,
+            roughness: 0.4,
+            metalness: 0.75
+        })
+    );
+
+    weaponBody.position.z = -0.55;
+
+    weapon.add(weaponBody);
+
+    const barrel = new THREE.Mesh(
+        new THREE.CylinderGeometry(
+            0.045,
+            0.055,
+            0.55,
+            8
+        ),
+        new THREE.MeshStandardMaterial({
+            color: 0x050709,
+            metalness: 0.9,
+            roughness: 0.25
+        })
+    );
+
+    barrel.rotation.x = Math.PI / 2;
+    barrel.position.z = -1.35;
+
+    weapon.add(barrel);
+
+    const grip = new THREE.Mesh(
+        new THREE.BoxGeometry(
+            0.15,
+            0.42,
+            0.22
+        ),
+        new THREE.MeshStandardMaterial({
+            color: 0x080b0d
+        })
+    );
+
+    grip.position.set(
+        0,
+        -0.28,
+        -0.35
+    );
+
+    grip.rotation.x = -0.25;
+
+    weapon.add(grip);
+
+    muzzleLight = new THREE.PointLight(
+        0xffb52e,
+        0,
+        7
+    );
+
+    muzzleLight.position.z = -1.65;
+
+    weapon.add(muzzleLight);
+}
+
+function getForwardDirection() {
+
+    const direction = new THREE.Vector3(
+        -Math.sin(cameraYaw),
+        0,
+        -Math.cos(cameraYaw)
+    );
+
+    direction.normalize();
+
+    return direction;
+}
+
+function movePlayer(delta) {
+
+    if (!gameRunning) {
+        return;
+    }
+
+    const speed = 8.5;
+
+    const forward = getForwardDirection();
+
+    const right = new THREE.Vector3(
+        Math.cos(cameraYaw),
+        0,
+        -Math.sin(cameraYaw)
+    );
+
+    tempVector
+        .set(0, 0, 0)
+        .addScaledVector(forward, moveY)
+        .addScaledVector(right, moveX);
+
+    if (tempVector.lengthSq() > 0.001) {
+
+        tempVector.normalize();
+
+        const nextX =
+            player.position.x +
+            tempVector.x * speed * delta;
+
+        const nextZ =
+            player.position.z +
+            tempVector.z * speed * delta;
+
+        if (!collidesWithObstacles(
+            nextX,
+            nextZ,
+            player.userData.radius
+        )) {
+
+            player.position.x = nextX;
+            player.position.z = nextZ;
+        }
+
+        const targetRotation =
+            Math.atan2(
+                tempVector.x,
+                tempVector.z
+            );
+
+        player.rotation.y = smoothAngle(
+            player.rotation.y,
+            targetRotation,
+            Math.min(1, delta * 12)
+        );
+    }
+}
+
+function smoothAngle(a, b, amount) {
+
+    let difference = b - a;
+
+    while (difference > Math.PI) {
+        difference -= Math.PI * 2;
+    }
+
+    while (difference < -Math.PI) {
+        difference += Math.PI * 2;
+    }
+
+    return a + difference * amount;
+}
+
+function collidesWithObstacles(x, z, radius) {
+
+    for (const obstacle of obstacles) {
+
+        const dx =
+            x - obstacle.mesh.position.x;
+
+        const dz =
+            z - obstacle.mesh.position.z;
+
+        const distance =
+            Math.sqrt(dx * dx + dz * dz);
+
+        if (distance < obstacle.radius + radius) {
+            return true;
+        }
+    }
+
+    return (
+        Math.abs(x) > worldSize - 2 ||
+        Math.abs(z) > worldSize - 2
+    );
+}
+
+function updateCamera(delta) {
+
+    const cameraDistance = 6.2;
+
+    const height = 3.4;
+
+    const target = new THREE.Vector3(
+        player.position.x,
+        player.position.y + 1.5,
+        player.position.z
+    );
+
+    const horizontalDistance =
+        Math.cos(cameraPitch) * cameraDistance;
+
+    const cameraOffset = new THREE.Vector3(
+        Math.sin(cameraYaw) * horizontalDistance,
+        Math.sin(cameraPitch) * cameraDistance + height,
+        Math.cos(cameraYaw) * horizontalDistance
+    );
+
+    const desiredPosition =
+        target.clone().add(cameraOffset);
+
+    camera.position.lerp(
+        desiredPosition,
+        Math.min(1, delta * 8)
+    );
+
+    camera.lookAt(target);
+}
+
+function shoot() {
+
+    if (!gameRunning) {
+        return;
+    }
+
+    if (shootCooldown > 0) {
+        return;
+    }
+
+    shootCooldown = 0.19;
+
+    muzzleLight.intensity = 22;
+
+    setTimeout(() => {
+
+        if (muzzleLight) {
+            muzzleLight.intensity = 0;
+        }
+
+    }, 55);
+
+    createMuzzleFlash();
+
+    const direction = getForwardDirection();
+
+    direction.y = 0;
+
+    direction.normalize();
+
+    const start = player.position.clone();
+
+    start.y = 1.65;
+
+    start.addScaledVector(
+        direction,
+        1.2
+    );
+
+    const bulletGeometry =
+        new THREE.SphereGeometry(
+            0.09,
+            6,
+            6
+        );
+
+    const bulletMaterial =
+        new THREE.MeshBasicMaterial({
+            color: 0xffe98a
+        });
+
+    const bullet = new THREE.Mesh(
+        bulletGeometry,
+        bulletMaterial
+    );
+
+    bullet.position.copy(start);
+
+    scene.add(bullet);
+
+    bullets.push({
+        mesh: bullet,
+        velocity: direction.multiplyScalar(42),
+        life: 1.5
+    });
+}
+
+function createMuzzleFlash() {
+
+    const geometry =
+        new THREE.SphereGeometry(
+            0.22,
+            6,
+            6
+        );
+
+    const material =
+        new THREE.MeshBasicMaterial({
+            color: 0xffb52e,
+            transparent: true,
+            opacity: 0.95
+        });
+
+    const flash =
+        new THREE.Mesh(
+            geometry,
+            material
+        );
+
+    const direction = getForwardDirection();
+
+    flash.position.copy(
+        player.position
+    );
+
+    flash.position.y = 1.6;
+
+    flash.position.addScaledVector(
+        direction,
+        1.55
+    );
+
+    scene.add(flash);
+
+    let scale = 1;
+
+    const interval = setInterval(() => {
+
+        scale -= 0.35;
+
+        flash.scale.setScalar(
+            Math.max(scale, 0)
+        );
+
+        flash.material.opacity =
+            Math.max(scale, 0);
+
+        if (scale <= 0) {
+
+            clearInterval(interval);
+
+            scene.remove(flash);
+
+            flash.geometry.dispose();
+            flash.material.dispose();
+        }
+
+    }, 25);
+}
+
+function updateBullets(delta) {
+
+    for (
+        let i = bullets.length - 1;
+        i >= 0;
+        i--
+    ) {
+
+        const bullet = bullets[i];
+
+        bullet.mesh.position.addScaledVector(
+            bullet.velocity,
+            delta
+        );
+
+        bullet.life -= delta;
+
+        let removeBullet =
+            bullet.life <= 0;
+
+        for (
+            let e = enemies.length - 1;
+            e >= 0 && !removeBullet;
+            e--
+        ) {
+
+            const enemy = enemies[e];
+
+            const distance =
+                bullet.mesh.position.distanceTo(
+                    enemy.position
+                );
+
+            if (distance < 1.15) {
+
+                enemy.userData.health -= 35;
+
+                createImpactParticles(
+                    bullet.mesh.position
+                );
+
+                removeBullet = true;
+
+                enemy.userData.flash = 1;
+
+                if (enemy.userData.health <= 0) {
+
+                    killEnemy(enemy);
+                }
+            }
+        }
+
+        if (
+            Math.abs(bullet.mesh.position.x) >
+            worldSize ||
+            Math.abs(bullet.mesh.position.z) >
+            worldSize
+        ) {
+            removeBullet = true;
+        }
+
+        if (removeBullet) {
+
+            scene.remove(
+                bullet.mesh
+            );
+
+            bullet.mesh.geometry.dispose();
+            bullet.mesh.material.dispose();
+
+            bullets.splice(i, 1);
+        }
+    }
+}
+
+function createImpactParticles(position) {
+
+    const particleCount = 10;
+
+    for (let i = 0; i < particleCount; i++) {
+
+        const geometry =
+            new THREE.SphereGeometry(
+                0.035 + Math.random() * 0.035,
+                4,
+                4
+            );
+
+        const material =
+            new THREE.MeshBasicMaterial({
+                color:
+                    Math.random() > 0.45
+                    ? 0xff4b32
+                    : 0xffd15a
+            });
+
+        const particle =
+            new THREE.Mesh(
+                geometry,
+                material
+            );
+
+        particle.position.copy(position);
+
+        const velocity = new THREE.Vector3(
+            (Math.random() - .5) * 5,
+            Math.random() * 5,
+            (Math.random() - .5) * 5
+        );
+
+        scene.add(particle);
+
+        particles.push({
+            mesh: particle,
+            velocity,
+            life: 0.35 + Math.random() * 0.3
+        });
+    }
+}
+
+function updateParticles(delta) {
+
+    for (
+        let i = particles.length - 1;
+        i >= 0;
+        i--
+    ) {
+
+        const particle = particles[i];
+
+        particle.mesh.position.addScaledVector(
+            particle.velocity,
+            delta
+        );
+
+        particle.velocity.y -=
+            10 * delta;
+
+        particle.life -= delta;
+
+        particle.mesh.scale.setScalar(
+            Math.max(0, particle.life * 2)
+        );
+
+        if (particle.life <= 0) {
+
+            scene.remove(
+                particle.mesh
+            );
+
+            particle.mesh.geometry.dispose();
+            particle.mesh.material.dispose();
+
+            particles.splice(i, 1);
+        }
+    }
+}
+
+function spawnEnemy() {
+
+    const angle =
+        Math.random() *
+        Math.PI *
+        2;
+
+    const distance =
+        55 + Math.random() * 12;
+
+    const enemy =
+        createEnemy();
+
+    enemy.position.set(
+        Math.cos(angle) * distance,
+        0,
+        Math.sin(angle) * distance
+    );
+
+    scene.add(enemy);
+
+    enemies.push(enemy);
+}
+
+function createEnemy() {
+
+    const enemy =
+        new THREE.Group();
+
+    const redMaterial =
+        new THREE.MeshStandardMaterial({
+            color: 0x7a111b,
+            roughness: 0.5,
+            metalness: 0.5,
+            emissive: 0x330006,
+            emissiveIntensity: 0.8
+        });
+
+    const blackMaterial =
+        new THREE.MeshStandardMaterial({
+            color: 0x090c0f,
+            roughness: 0.6,
+            metalness: 0.55
+        });
+
+    const glowMaterial =
+        new THREE.MeshStandardMaterial({
+            color: 0xff233c,
+            emissive: 0xff001d,
+            emissiveIntensity: 2
+        });
+
+    const body =
+        new THREE.Mesh(
+            new THREE.CapsuleGeometry(
+                0.62,
+                1.15,
+                4,
+                8
+            ),
+            redMaterial
+        );
+
+    body.position.y = 1.1;
+
+    enemy.add(body);
+
+    const head =
+        new THREE.Mesh(
+            new THREE.SphereGeometry(
+                0.45,
+                10,
+                8
+            ),
+            blackMaterial
+        );
+
+    head.position.y = 2.25;
+
+    enemy.add(head);
+
+    const visor =
+        new THREE.Mesh(
+            new THREE.BoxGeometry(
+                0.55,
+                0.13,
+                0.06
+            ),
+            glowMaterial
+        );
+
+    visor.position.set(
+        0,
+        2.28,
+        -0.42
+    );
+
+    enemy.add(visor);
+
+    const shoulder =
+        new THREE.Mesh(
+            new THREE.BoxGeometry(
+                1.5,
+                0.25,
+                0.5
+            ),
+            blackMaterial
+        );
+
+    shoulder.position.y = 1.55;
+
+    enemy.add(shoulder);
+
+    enemy.userData.health = 100;
+    enemy.userData.radius = 0.9;
+    enemy.userData.speed =
+        1.5 + Math.random() * 1.4;
+    enemy.userData.attackTimer =
+        Math.random() * 1;
+    enemy.userData.flash = 0;
+
+    return enemy;
+}
+
+function updateEnemies(delta) {
+
+    for (
+        let i = enemies.length - 1;
+        i >= 0;
+        i--
+    ) {
+
+        const enemy = enemies[i];
+
+        const toPlayer =
+            player.position.clone()
+            .sub(enemy.position);
+
+        toPlayer.y = 0;
+
+        const distance =
+            toPlayer.length();
+
+        if (distance > 0.1) {
+            toPlayer.normalize();
+        }
+
+        if (enemy.userData.flash > 0) {
+
+            enemy.userData.flash -= delta;
+
+            enemy.traverse(child => {
+
+                if (
+                    child.isMesh &&
+                    child.material &&
+                    child.material.emissive
+                ) {
+                    child.material.emissiveIntensity =
+                        2.8;
+                }
+
+            });
+
+        } else {
+
+            enemy.traverse(child => {
+
+                if (
+                    child.isMesh &&
+                    child.material &&
+                    child.material.emissive
+                ) {
+                    child.material.emissiveIntensity =
+                        child.material.color.r > .5
+                        ? 0.8
+                        : 0;
+                }
+
+            });
+        }
+
+        if (distance > 2.3) {
+
+            const nextX =
+                enemy.position.x +
+                toPlayer.x *
+                enemy.userData.speed *
+                delta;
+
+            const nextZ =
+                enemy.position.z +
+                toPlayer.z *
+                enemy.userData.speed *
+                delta;
+
+            if (
+                !collidesWithObstacles(
+                    nextX,
+                    nextZ,
+                    enemy.userData.radius
+                )
+            ) {
+
+                enemy.position.x = nextX;
+                enemy.position.z = nextZ;
+            }
+
+        } else {
+
+            enemy.userData.attackTimer -=
+                delta;
+
+            if (
+                enemy.userData.attackTimer <= 0
+            ) {
+
+                enemy.userData.attackTimer =
+                    0.9 +
+                    Math.random() * .6;
+
+                damagePlayer(
+                    7 + Math.random() * 7
+                );
+            }
+        }
+
+        const targetRotation =
+            Math.atan2(
+                toPlayer.x,
+                toPlayer.z
+            );
+
+        enemy.rotation.y =
+            smoothAngle(
+                enemy.rotation.y,
+                targetRotation,
+                Math.min(1, delta * 5)
+            );
+    }
+}
+
+function damagePlayer(amount) {
+
+    if (damageCooldown > 0) {
+        return;
+    }
+
+    damageCooldown = 0.35;
+
+    playerHealth =
+        Math.max(
+            0,
+            playerHealth - amount
+        );
+
+    updateHealthUI();
+
+    damageFlash.classList.remove("hit");
+
+    void damageFlash.offsetWidth;
+
+    damageFlash.classList.add("hit");
+
+    if (playerHealth <= 0) {
+
+        endGame();
+    }
+}
+
+function killEnemy(enemy) {
+
+    const index =
+        enemies.indexOf(enemy);
+
+    if (index === -1) {
+        return;
+    }
+
+    createImpactParticles(
+        enemy.position.clone()
+            .setY(1.4)
+    );
+
+    killCount++;
+
+    killsText.textContent =
+        killCount;
+
+    scene.remove(enemy);
+
+    enemies.splice(
+        index,
+        1
+    );
+
+    if (
+        killCount > 0 &&
+        killCount % 10 === 0
+    ) {
+
+        wave++;
+
+        waveIndicator.textContent =
+            "OLEADA " + wave;
+
+        showMessage(
+            "OLEADA " + wave
+        );
+    }
+}
+
+function updateHealthUI() {
+
+    const value =
+        Math.round(playerHealth);
+
+    healthFill.style.width =
+        value + "%";
+
+    healthText.textContent =
+        value + "%";
+
+    if (value > 60) {
+
+        healthFill.style.background =
+            "linear-gradient(90deg,#19e88a,#baff5e)";
+
+    } else if (value > 30) {
+
+        healthFill.style.background =
+            "linear-gradient(90deg,#ffd43b,#ff9f1c)";
+
+    } else {
+
+        healthFill.style.background =
+            "linear-gradient(90deg,#ff2424,#ff693b)";
+    }
+}
+
+function showMessage(text) {
+
+    message.textContent = text;
+
+    message.style.opacity = "1";
+
+    setTimeout(() => {
+
+        message.style.opacity = "0";
+
+    }, 1000);
+}
+
+function spawnManager(delta) {
+
+    spawnTimer -= delta;
+
+    const maximumEnemies =
+        Math.min(
+            5 + wave * 2,
+            18
+        );
+
+    if (
+        spawnTimer <= 0 &&
+        enemies.length < maximumEnemies
+    ) {
+
+        spawnEnemy();
+
+        const base =
+            Math.max(
+                0.45,
+                1.8 - wave * 0.08
+            );
+
+        spawnTimer =
+            base +
+            Math.random() * .7;
+    }
+}
+
+function updateGameTimers(delta) {
+
+    if (shootCooldown > 0) {
+        shootCooldown -= delta;
+    }
+
+    if (damageCooldown > 0) {
+        damageCooldown -= delta;
+    }
+
+    waveTimer += delta;
+}
+
+function resetGame() {
+
+    for (const enemy of enemies) {
+        scene.remove(enemy);
+    }
+
+    for (const bullet of bullets) {
+        scene.remove(bullet.mesh);
+    }
+
+    for (const particle of particles) {
+        scene.remove(particle.mesh);
+    }
+
+    enemies.length = 0;
+    bullets.length = 0;
+    particles.length = 0;
+
+    player.position.set(
+        0,
+        0,
+        10
+    );
+
+    player.rotation.set(
+        0,
+        0,
+        0
+    );
+
+    cameraYaw = Math.PI;
+    cameraPitch = 0.35;
+
+    playerHealth = 100;
+    killCount = 0;
+    wave = 1;
+
+    spawnTimer = 0.2;
+    waveTimer = 0;
+
+    moveX = 0;
+    moveY = 0;
+
+    shootCooldown = 0;
+    damageCooldown = 0;
+
+    killsText.textContent = "0";
+
+    waveIndicator.textContent =
+        "OLEADA 1";
+
+    updateHealthUI();
+
+    joystickKnob.style.transform =
+        "translate(0px, 0px)";
+}
+
+function startGame() {
+
+    if (!scene) {
+
+        initRenderer();
+        initScene();
+    }
+
+    resetGame();
+
+    splash.classList.add("hidden");
+
+    hud.style.display = "block";
+
+    gameOverScreen.style.display =
+        "none";
+
+    gameRunning = true;
+    gameStarted = true;
+
+    clock.start();
+
+    requestAnimationFrame(
+        animate
+    );
+}
+
+function endGame() {
+
+    if (!gameRunning) {
+        return;
+    }
+
+    gameRunning = false;
+
+    finalKills.textContent =
+        killCount;
+
+    gameOverScreen.style.display =
+        "flex";
+}
+
+function animate() {
+
+    if (!gameStarted) {
+        return;
+    }
+
+    requestAnimationFrame(
+        animate
+    );
+
+    const delta =
+        Math.min(
+            clock.getDelta(),
+            0.033
+        );
+
+    if (gameRunning) {
+
+        updateGameTimers(delta);
+
+        movePlayer(delta);
+
+        updateCamera(delta);
+
+        spawnManager(delta);
+
+        updateEnemies(delta);
+
+        updateBullets(delta);
+
+        updateParticles(delta);
+    }
+
+    renderer.render(
+        scene,
+        camera
+    );
+}
+
+function setupJoystick() {
+
+    joystick.addEventListener(
+        "pointerdown",
+        event => {
+
+            if (!gameRunning) {
+                return;
+            }
+
+            joystickPointerId =
+                event.pointerId;
+
+            joystick.setPointerCapture(
+                event.pointerId
+            );
+
+            updateJoystick(
+                event.clientX,
+                event.clientY
+            );
+        }
+    );
+
+    joystick.addEventListener(
+        "pointermove",
+        event => {
+
+            if (
+                event.pointerId !==
+                joystickPointerId
+            ) {
+                return;
+            }
+
+            updateJoystick(
+                event.clientX,
+                event.clientY
+            );
+        }
+    );
+
+    joystick.addEventListener(
+        "pointerup",
+        releaseJoystick
+    );
+
+    joystick.addEventListener(
+        "pointercancel",
+        releaseJoystick
+    );
+}
+
+function updateJoystick(x, y) {
+
+    const rect =
+        joystick.getBoundingClientRect();
+
+    const centerX =
+        rect.left +
+        rect.width / 2;
+
+    const centerY =
+        rect.top +
+        rect.height / 2;
+
+    let dx =
+        x - centerX;
+
+    let dy =
+        y - centerY;
+
+    const maxDistance =
+        rect.width * 0.30;
+
+    const distance =
+        Math.sqrt(
+            dx * dx +
+            dy * dy
+        );
+
+    if (distance > maxDistance) {
+
+        dx =
+            dx / distance *
+            maxDistance;
+
+        dy =
+            dy / distance *
+            maxDistance;
+    }
+
+    moveX =
+        dx / maxDistance;
+
+    moveY =
+        -dy / maxDistance;
+
+    joystickKnob.style.transform =
+        `translate(${dx}px, ${dy}px)`;
+}
+
+function releaseJoystick(event) {
+
+    if (
+        event.pointerId !==
+        joystickPointerId
+    ) {
+        return;
+    }
+
+    joystickPointerId = null;
+
+    moveX = 0;
+    moveY = 0;
+
+    joystickKnob.style.transform =
+        "translate(0px, 0px)";
+}
+
+function setupLookControls() {
+
+    lookArea.addEventListener(
+        "pointerdown",
+        event => {
+
+            if (!gameRunning) {
+                return;
+            }
+
+            lookPointerId =
+                event.pointerId;
+
+            lookStartX =
+                event.clientX;
+
+            lookStartY =
+                event.clientY;
+
+            lookArea.setPointerCapture(
+                event.pointerId
+            );
+        }
+    );
+
+    lookArea.addEventListener(
+        "pointermove",
+        event => {
+
+            if (
+                event.pointerId !==
+                lookPointerId
+            ) {
+                return;
+            }
+
+            const dx =
+                event.clientX -
+                lookStartX;
+
+            const dy =
+                event.clientY -
+                lookStartY;
+
+            lookStartX =
+                event.clientX;
+
+            lookStartY =
+                event.clientY;
+
+            cameraYaw -=
+                dx * 0.006;
+
+            cameraPitch +=
+                dy * 0.004;
+
+            cameraPitch =
+                THREE.MathUtils.clamp(
+                    cameraPitch,
+                    0.05,
+                    0.75
+                );
+        }
+    );
+
+    lookArea.addEventListener(
+        "pointerup",
+        event => {
+
+            if (
+                event.pointerId ===
+                lookPointerId
+            ) {
+                lookPointerId = null;
+            }
+        }
+    );
+
+    lookArea.addEventListener(
+        "pointercancel",
+        event => {
+
+            if (
+                event.pointerId ===
+                lookPointerId
+            ) {
+                lookPointerId = null;
+            }
+        }
+    );
+}
+
+function setupFireButton() {
+
+    fireButton.addEventListener(
+        "pointerdown",
+        event => {
+
+            event.preventDefault();
+
+            if (!gameRunning) {
+                return;
+            }
+
+            shoot();
+        }
+    );
+}
+
+function setupKeyboardControls() {
+
+    const keys = {};
+
+    window.addEventListener(
+        "keydown",
+        event => {
+
+            keys[event.code] = true;
+
+            if (
+                event.code ===
+                "Space"
+            ) {
+                shoot();
+            }
+
+            updateKeyboardMovement(
+                keys
+            );
+        }
+    );
+
+    window.addEventListener(
+        "keyup",
+        event => {
+
+            keys[event.code] = false;
+
+            updateKeyboardMovement(
+                keys
+            );
+        }
+    );
+}
+
+function updateKeyboardMovement(keys) {
+
+    let x = 0;
+    let y = 0;
+
+    if (
+        keys["KeyA"] ||
+        keys["ArrowLeft"]
+    ) {
+        x -= 1;
+    }
+
+    if (
+        keys["KeyD"] ||
+        keys["ArrowRight"]
+    ) {
+        x += 1;
+    }
+
+    if (
+        keys["KeyW"] ||
+        keys["ArrowUp"]
+    ) {
+        y += 1;
+    }
+
+    if (
+        keys["KeyS"] ||
+        keys["ArrowDown"]
+    ) {
+        y -= 1;
+    }
+
+    const length =
+        Math.sqrt(
+            x * x +
+            y * y
+        );
+
+    if (length > 0) {
+
+        moveX = x / length;
+        moveY = y / length;
+
+    } else {
+
+        moveX = 0;
+        moveY = 0;
+    }
+}
+
+window.addEventListener(
+    "resize",
+    () => {
+
+        if (!renderer || !camera) {
+            return;
+        }
+
+        camera.aspect =
+            window.innerWidth /
+            window.innerHeight;
+
+        camera.updateProjectionMatrix();
+
+        renderer.setSize(
+            window.innerWidth,
+            window.innerHeight,
+            false
+        );
+
+        renderer.setPixelRatio(
+            Math.min(
+                window.devicePixelRatio || 1,
+                1.5
+            )
+        );
+    }
+);
+
+startButton.addEventListener(
+    "click",
+    startGame
+);
+
+restartButton.addEventListener(
+    "click",
+    () => {
+
+        resetGame();
+
+        gameOverScreen.style.display =
+            "none";
+
+        gameRunning = true;
+
+        clock.start();
+    }
+);
+
+setupJoystick();
+setupLookControls();
+setupFireButton();
+setupKeyboardControls();
+
+document.addEventListener(
+    "contextmenu",
+    event => {
+        event.preventDefault();
+    }
+);
+
+</script>
+
+</body>
+</html>
