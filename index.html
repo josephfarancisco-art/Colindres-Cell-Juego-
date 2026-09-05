@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cyber Ninja Mobile</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            background: #030408;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #00ffcc;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            touch-action: none;
+        }
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            max-width: 480px;
+            max-height: 850px;
+            background: #0b0c16;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            border: 2px solid #00ffcc;
+            box-shadow: 0 0 20px rgba(0, 255, 204, 0.2);
+        }
+        canvas {
+            display: block;
+            background: linear-gradient(135deg, #0f1020 0%, #030408 100%);
+            width: 100%;
+            height: 60vh;
+        }
+        .hud-panel {
+            background: rgba(10, 10, 20, 0.9);
+            padding: 10px;
+            border-bottom: 1px solid #00ffcc;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            font-size: 14px;
+        }
+        .hud-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .bar-container {
+            width: 100px;
+            height: 12px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid #00ffcc;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .bar-fill {
+            height: 100%;
+            width: 100%;
+        }
+        #hp-fill { background: #ff3366; }
+        #energy-fill { background: #00ccff; }
+
+        .controls-panel {
+            flex: 1;
+            background: #06070e;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            border-top: 2px solid #ff00ff;
+        }
+        .dpad-row {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+        .btn-action {
+            background: rgba(0, 255, 204, 0.1);
+            color: #00ffcc;
+            border: 2px solid #00ffcc;
+            padding: 12px 18px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 0 10px rgba(0, 255, 204, 0.2);
+        }
+        .btn-action:active {
+            background: #00ffcc;
+            color: #030408;
+        }
+        .btn-fire { border-color: #ff3366; color: #ff3366; }
+        .btn-fire:active { background: #ff3366; color: #fff; }
+
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(3, 4, 8, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            padding: 20px;
+            text-align: center;
+        }
+        h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+            color: #00ffcc;
+            text-shadow: 0 0 15px #00ffcc;
+        }
+        p { font-size: 14px; color: #a5b1c2; margin-bottom: 20px; }
+        .menu-btn {
+            background: transparent;
+            color: #00ffcc;
+            border: 2px solid #00ffcc;
+            padding: 12px 25px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 6px;
+            margin: 8px;
+            box-shadow: 0 0 10px rgba(0, 255, 204, 0.2);
+        }
+        .shop-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            width: 100%;
+            max-height: 250px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+        }
+        .shop-item {
+            background: rgba(0, 255, 204, 0.05);
+            border: 1px solid rgba(0, 255, 204, 0.4);
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <!-- HUD Superior -->
+    <div class="hud-panel">
+        <div class="hud-row">
+            <div>NIVEL: <span id="hud-level">1</span></div>
+            <div>CRÉDITOS: <span id="hud-money">100</span></div>
+            <div>PUNTOS: <span id="hud-score">0</span></div>
+        </div>
+        <div class="hud-row">
+            <div>HP: <div class="bar-container"><div id="hp-fill" class="bar-fill"></div></div></div>
+            <div>ENERGÍA: <div class="bar-container"><div id="energy-fill" class="bar-fill"></div></div></div>
+        </div>
+    </div>
+
+    <!-- Canvas del Juego -->
+    <canvas id="gameCanvas" width="400" height="350"></canvas>
+
+    <!-- Controles Táctiles para Móvil -->
+    <div class="controls-panel">
+        <div class="dpad-row">
+            <div class="btn-action" id="btn-up">▲ ARRIBA</div>
+            <div class="btn-action" id="btn-dash">⚡ DASH</div>
+        </div>
+        <div class="dpad-row">
+            <div class="btn-action" id="btn-left">◄ IZQ</div>
+            <div class="btn-action" id="btn-right">DER ►</div>
+        </div>
+        <div class="dpad-row">
+            <div class="btn-action btn-fire" id="btn-attack">⚔️ ATACAR</div>
+            <div class="btn-action btn-fire" id="btn-shoot">🔫 LÁSER</div>
+        </div>
+    </div>
+
+    <!-- Pantalla de Inicio -->
+    <div id="menu-screen" class="screen">
+        <h1>CYBER NINJA</h1>
+        <p>Versión Móvil Optimizada</p>
+        <button class="menu-btn" onclick="startGame()">INICIAR MISIÓN</button>
+        <button class="menu-btn" onclick="openShop()">TIENDA / ARSENAL</button>
+    </div>
+
+    <!-- Tienda -->
+    <div id="shop-screen" class="screen" style="display:none;">
+        <h2 style="color: #ff00ff;">ARSENAL</h2>
+        <p>Créditos: <span id="shop-money">100</span></p>
+        <div class="shop-grid" id="shop-items-container"></div>
+        <button class="menu-btn" onclick="closeShop()">VOLVER</button>
+    </div>
+
+    <!-- GameOver -->
+    <div id="gameover-screen" class="screen" style="display:none;">
+        <h1 style="color: #ff3366;">GAME OVER</h1>
+        <p>Tu núcleo fue destruido.</p>
+        <button class="menu-btn" onclick="startGame()">REINTENTAR</button>
+        <button class="menu-btn" onclick="returnToMenu()">MENÚ</button>
+    </div>
+
+    <!-- Victoria -->
+    <div id="victory-screen" class="screen" style="display:none;">
+        <h1 style="color: #00ffcc;">¡SECTOR SUPERADO!</h1>
+        <p id="victory-text">Nivel completado.</p>
+        <button class="menu-btn" onclick="nextLevel()">SIGUIENTE NIVEL</button>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let gameState = 'MENU';
+    let score = 0;
+    let money = 100;
+    let level = 1;
+
+    let player = {
+        x: 50, y: 150, width: 28, height: 42,
+        speed: 3.5, hp: 100, maxHp: 100, energy: 100, maxEnergy: 100,
+        dir: 'RIGHT', skin: 'default', weapon: 'katana', isDashing: false, dashCooldown: 0, attackCooldown: 0
+    };
+
+    let enemies = [];
+    let bullets = [];
+    let particles = [];
+    let boss = null;
+
+    const shopItems = [
+        { id: 'skin_neon', name: 'Armadura Neón', type: 'skin', price: 150, desc: 'Estilo violeta avanzado.' },
+        { id: 'weapon_pistol', name: 'Pistola Láser', type: 'weapon', price: 200, desc: 'Dispara a distancia.' },
+        { id: 'weapon_machetes', name: 'Doble Machete', type: 'weapon', price: 250, desc: 'Más daño cuerpo a cuerpo.' }
+    ];
+    let unlockedItems = [];
+
+    // Controles Táctiles (Touch Events)
+    let moveDir = { x: 0, y: 0 };
+
+    function bindTouch(id, actionStart, actionEnd) {
+        const el = document.getElementById(id);
+        el.addEventListener('touchstart', (e) => { e.preventDefault(); actionStart(); });
+        el.addEventListener('touchend', (e) => { e.preventDefault(); if(actionEnd) actionEnd(); });
+        el.addEventListener('mousedown', (e) => { actionStart(); });
+        el.addEventListener('mouseup', (e) => { if(actionEnd) actionEnd(); });
+    }
+
+    bindTouch('btn-up', () => moveDir.y = -1, () => moveDir.y = 0);
+    bindTouch('btn-left', () => { moveDir.x = -1; player.dir = 'LEFT'; }, () => moveDir.x = 0);
+    bindTouch('btn-right', () => { moveDir.x = 1; player.dir = 'RIGHT'; }, () => moveDir.x = 0);
+    bindTouch('btn-dash', () => playerDash());
+    bindTouch('btn-attack', () => playerAttack());
+    bindTouch('btn-shoot', () => playerSecondaryShoot());
+
+    function startGame() {
+        document.getElementById('menu-screen').style.display = 'none';
+        document.getElementById('gameover-screen').style.display = 'none';
+        document.getElementById('victory-screen').style.display = 'none';
+        document.getElementById('shop-screen').style.display = 'none';
+        level = 1; score = 0;
+        initLevel();
+        gameState = 'PLAYING';
+    }
+
+    function initLevel() {
+        player.x = 40; player.y = 150;
+        player.hp = player.maxHp; player.energy = player.maxEnergy;
+        enemies = []; bullets = []; particles = []; boss = null;
+
+        let count = 2 + level;
+        for (let i = 0; i < count; i++) {
+            enemies.push({
+                x: 250 + Math.random() * 120,
+                y: 50 + Math.random() * 250,
+                width: 30, height: 44,
+                hp: 30 + level * 10, maxHp: 30 + level * 10,
+                speed: 1.2 + level * 0.2, shootCooldown: 0, anim: 0
+            });
+        }
+        updateHUD();
+    }
+
+    function spawnBoss() {
+        let scale = 1 + (level - 1) * 0.2;
+        boss = {
+            x: 300, y: 150, width: 50 * scale, height: 70 * scale,
+            hp: 200 * level, maxHp: 200 * level, speed: 1.5, attackTimer: 0, scale: scale, anim: 0
+        };
+    }
+
+    function openShop() {
+        document.getElementById('menu-screen').style.display = 'none';
+        document.getElementById('shop-screen').style.display = 'flex';
+        renderShop();
+    }
+    function closeShop() {
+        document.getElementById('shop-screen').style.display = 'none';
+        document.getElementById('menu-screen').style.display = 'flex';
+    }
+    function renderShop() {
+        document.getElementById('shop-money').innerText = money;
+        let container = document.getElementById('shop-items-container');
+        container.innerHTML = '';
+        shopItems.forEach(item => {
+            let owned = unlockedItems.includes(item.id);
+            let div = document.createElement('div');
+            div.className = 'shop-item';
+            div.innerHTML = `<strong>${item.name}</strong> - ${item.price} Créditos<br><small>${item.desc}</small>`;
+            div.onclick = () => {
+                if (!owned && money >= item.price) {
+                    money -= item.price;
+                    unlockedItems.push(item.id);
+                    if(item.type==='skin') player.skin = item.id.replace('skin_', '');
+                    if(item.type==='weapon') player.weapon = item.id.replace('weapon_', '');
+                    renderShop();
+                }
+            };
+            container.appendChild(div);
+        });
+    }
+
+    function returnToMenu() {
+        document.getElementById('gameover-screen').style.display = 'none';
+        document.getElementById('menu-screen').style.display = 'flex';
+        gameState = 'MENU';
+    }
+    function nextLevel() {
+        level++;
+        document.getElementById('victory-screen').style.display = 'none';
+        initLevel();
+        gameState = 'PLAYING';
+    }
+
+    function playerAttack() {
+        if (player.attackCooldown > 0) return;
+        player.attackCooldown = 12;
+        let hitBox = {
+            x: player.dir === 'RIGHT' ? player.x + player.width : player.x - 35,
+            y: player.y - 5, width: 35, height: player.height + 10
+        };
+        enemies.forEach(en => {
+            if (rectIntersect(hitBox, en)) en.hp -= player.weapon === 'machetes' ? 30 : 20;
+        });
+        if (boss && rectIntersect(hitBox, boss)) boss.hp -= player.weapon === 'machetes' ? 30 : 20;
+    }
+
+    function playerSecondaryShoot() {
+        if (player.weapon !== 'pistol' || player.energy < 15) return;
+        player.energy -= 15;
+        bullets.push({
+            x: player.dir === 'RIGHT' ? player.x + player.width : player.x,
+            y: player.y + player.height / 2,
+            vx: player.dir === 'RIGHT' ? 8 : -8, vy: 0,
+            radius: 4, color: '#00ccff', fromEnemy: false, damage: 25
+        });
+    }
+
+    function playerDash() {
+        if (player.dashCooldown > 0 || player.energy < 20) return;
+        player.energy -= 20;
+        player.isDashing = true;
+        player.dashCooldown = 30;
+        setTimeout(() => player.isDashing = false, 120);
+    }
+
+    function rectIntersect(a, b) {
+        return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
+    }
+
+    function update() {
+        if (gameState !== 'PLAYING') return;
+
+        if (player.attackCooldown > 0) player.attackCooldown--;
+        if (player.dashCooldown > 0) player.dashCooldown--;
+        if (player.energy < player.maxEnergy) player.energy += 0.3;
+
+        let spd = player.isDashing ? player.speed * 2.5 : player.speed;
+        player.x += moveDir.x * spd;
+        // Simular gravedad/movimiento vertical libre con botón arriba/abajo
+        player.y += moveDir.y * spd;
+
+        player.x = Math.max(0, Math.min(canvas.width - player.width, player.x));
+        player.y = Math.max(20, Math.min(canvas.height - player.height - 10, player.y));
+
+        // Balas
+        for (let i = bullets.length - 1; i >= 0; i--) {
+            let b = bullets[i];
+            b.x += b.vx; b.y += b.vy;
+            if (!b.fromEnemy) {
+                enemies.forEach(en => {
+                    if (en.hp > 0 && Math.abs(en.x - b.x) < 20 && Math.abs(en.y - b.y) < 20) {
+                        en.hp -= b.damage || 20; bullets.splice(i, 1);
+                    }
+                });
+            } else {
+                if (Math.abs(player.x - b.x) < player.width && Math.abs(player.y - b.y) < player.height) {
+                    player.hp -= 10; bullets.splice(i, 1);
+                }
+            }
+            if (b.x < 0 || b.x > canvas.width) bullets.splice(i, 1);
+        }
+
+        // Enemigos
+        enemies.forEach((en, idx) => {
+            let angle = Math.atan2(player.y - en.y, player.x - en.x);
+            en.x += Math.cos(angle) * en.speed;
+            en.y += Math.sin(angle) * en.speed;
+            en.shootCooldown++;
+            if (en.shootCooldown > 100) {
+                en.shootCooldown = 0;
+                bullets.push({
+                    x: en.x, y: en.y + en.height/2,
+                    vx: Math.cos(angle) * 5, vy: Math.sin(angle) * 5,
+                    radius: 3, color: '#ff0055', fromEnemy: true
+                });
+            }
+            if (rectIntersect(player, en)) player.hp -= 0.4;
+            if (en.hp <= 0) {
+                score += 100; money += 20;
+                enemies.splice(idx, 1);
+                if (enemies.length === 0 && !boss) spawnBoss();
+            }
+        });
+
+        // Jefe
+        if (boss) {
+            let angle = Math.atan2(player.y - boss.y, player.x - boss.x);
+            boss.x += Math.cos(angle) * boss.speed * 0.6;
+            boss.y += Math.sin(angle) * boss.speed * 0.6;
+            boss.attackTimer++;
+            if (boss.attackTimer > 60) {
+                boss.attackTimer = 0;
+                bullets.push({
+                    x: boss.x, y: boss.y,
+                    vx: Math.cos(angle) * 6, vy: Math.sin(angle) * 6,
+                    radius: 5, color: '#ffff00', fromEnemy: true
+                });
+            }
+            if (rectIntersect(player, boss)) player.hp -= 1;
+            if (boss.hp <= 0) {
+                boss = null;
+                gameState = 'VICTORY';
+                document.getElementById('victory-screen').style.display = 'flex';
+            }
+        }
+
+        if (player.hp <= 0) {
+            gameState = 'GAMEOVER';
+            document.getElementById('gameover-screen').style.display = 'flex';
+        }
+        updateHUD();
+    }
+
+    function updateHUD() {
+        document.getElementById('hud-level').innerText = level;
+        document.getElementById('hud-money').innerText = money;
+        document.getElementById('hud-score').innerText = score;
+        document.getElementById('hp-fill').style.width = Math.max(0, (player.hp / player.maxHp) * 100) + '%';
+        document.getElementById('energy-fill').style.width = Math.max(0, (player.energy / player.maxEnergy) * 100) + '%';
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Cuadrícula Cyber
+        ctx.strokeStyle = 'rgba(0, 255, 204, 0.05)';
+        for (let x = 0; x < canvas.width; x += 30) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke(); }
+
+        // Balas
+        bullets.forEach(b => {
+            ctx.fillStyle = b.color;
+            ctx.beginPath(); ctx.arc(b.x, b.y, b.radius, 0, Math.PI*2); ctx.fill();
+        });
+
+        // Enemigos
+        enemies.forEach(en => {
+            ctx.fillStyle = '#2d3436';
+            ctx.fillRect(en.x, en.y, en.width, en.height);
+            ctx.fillStyle = '#ff3366';
+            ctx.fillRect(en.x + 6, en.y + 6, 8, 4); // Visor
+        });
+
+        // Jefe
+        if (boss) {
+            ctx.fillStyle = '#1e272e';
+            ctx.fillRect(boss.x - boss.width/2, boss.y - boss.height/2, boss.width, boss.height);
+            ctx.fillStyle = '#ff00ff';
+            ctx.beginPath(); ctx.arc(boss.x, boss.y, 10 * boss.scale, 0, Math.PI*2); ctx.fill();
+        }
+
+        // Jugador
+        ctx.fillStyle = player.skin === 'neon' ? '#9b59b6' : '#00ffcc';
+        ctx.fillRect(player.x, player.y, player.width, player.height);
+        ctx.fillStyle = '#ff00ff';
+        ctx.fillRect(player.dir === 'RIGHT' ? player.x + 16 : player.x + 4, player.y + 8, 8, 3);
+    }
+
+    function loop() {
+        update();
+        draw();
+        requestAnimationFrame(loop);
+    }
+    loop();
+</script>
+
+</body>
+</html>
